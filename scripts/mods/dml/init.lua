@@ -3,7 +3,6 @@
 local loader = {}
 
 Mods = {
-    hook = {},
     lua = setmetatable({}, {
         __index = { debug = debug, io = io, ffi = ffi, os = os },
     }),
@@ -11,7 +10,7 @@ Mods = {
 
 dofile("scripts/mods/dml/require")
 dofile("scripts/mods/dml/class")
-dofile("scripts/mods/dml/hook")
+Mods.hook = dofile("scripts/mods/dml/hook")
 
 function loader:init(boot_gui, mod_data)
     local ModLoader = dofile("scripts/mods/dml/mod_loader")

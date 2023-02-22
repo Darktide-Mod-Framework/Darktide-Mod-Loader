@@ -10,7 +10,30 @@ ignore = {
     "212/self", -- Disable unused self warnings.
 }
 
-std = "+DT"
+std = "+DT+DML"
+
+stds["DML"] = {
+    read_globals = {
+        "MODS_HOOKS", "MODS_HOOKS_BY_FILE", "Log",
+        Mods = { fields = {
+            lua = { fields = { "debug", "io", "ffi", "os" }},
+            hook = { fields = {
+                "set",
+                "set_on_file",
+                "enable",
+                "enable_by_file",
+                "remove",
+                "front",
+                "_get_item",
+                "_get_item_hook",
+                "_patch",
+            }},
+            "original_require",
+            "require_store",
+            "original_class",
+        }},
+    },
+}
 
 stds["DT"] = {
     read_globals = {
@@ -32,13 +55,9 @@ stds["DT"] = {
         Managers = { fields = {
             "mod", "event", "chat"
         }},
-        Mods = { fields = {
-            lua = { fields = { "debug", "io", "ffi", "os" }},
-            "original_require",
-            "require_store",
-        }},
         "Crashify","Keyboard","Mouse","Application","Color","Quarternion","Vector3","Vector2","RESOLUTION_LOOKUP",
         "ModManager", "Utf8", "StateGame", "ResourcePackage", "class", "Gui", "fassert", "printf", "__print", "ffi",
+        "class",
     },
 }
 
