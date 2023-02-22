@@ -30,23 +30,24 @@ end
 --
 -- Get function by function name
 --
-local function get_func(func_name)
-    return assert(loadstring("return " .. func_name))()
+local function get_func(obj, func_name)
+    return obj[func_name]
 end
 
 --
 -- Get item by function name
 --
-local function get_item(func_name)
+local function get_item(obj, func_name)
     -- Find existing item
     for _, item in ipairs(MODS_HOOKS) do
-        if item.name == func_name then
+        if item.obj == obj and item.name == func_name then
             return item
         end
     end
 
     -- Create new item
     local item = table.clone(item_template)
+    item.obj = obj
     item.name = func_name
     item.func = get_func(func_name)
 
@@ -82,48 +83,30 @@ end
 --
 local function patch()
     for i, item in ipairs(MODS_HOOKS) do
-        local item_name = "MODS_HOOKS[" .. i .. "]"
-
         local last_j = 1
         for j, hook in ipairs(item.hooks) do
-            local hook_name = item_name .. ".hooks[" .. j .. "]"
-            local before_hook_name = item_name .. ".hooks[" .. (j - 1) .. "]"
-
-            if j == 1 then
+            local is_first_hook = j == 1
+            if is_first_hook then
                 if hook.enable then
-                    assert(
-                        loadstring(
-                            hook_name .. ".exec = function(...)" ..
-                            "    return " .. hook_name .. ".func(" .. item_name .. ".func, ...)" ..
-                            "end"
-                        )
-                    )()
+                    MODS_HOOKS[i].hooks[j].exec = function(...)
+                        local mod_hook = MODS_HOOKS[i]
+                        return mod_hook.hooks[j].func(mod_hook.func, ...)
+                    end
                 else
-                    assert(
-                        loadstring(
-                            hook_name .. ".exec = function(...)" ..
-                            "    return " .. item_name .. ".func(...)" ..
-                            "end"
-                        )
-                    )()
+                    MODS_HOOKS[i].hooks[j].exec = function(...)
+                        return MODS_HOOKS[i].func(...)
+                    end
                 end
             else
                 if hook.enable then
-                    assert(
-                        loadstring(
-                            hook_name .. ".exec = function(...)" ..
-                            "    return " .. hook_name .. ".func(" .. before_hook_name .. ".exec, ...)" ..
-                            "end"
-                        )
-                    )()
+                    MODS_HOOKS[i].hooks[j].exec = function(...)
+                        local mod_hook = MODS_HOOKS[i]
+                        return mod_hook.hooks[j].func(mod_hook.hooks[j - 1].exec, ...)
+                    end
                 else
-                    assert(
-                        loadstring(
-                            hook_name .. ".exec = function(...)" ..
-                            "    return " .. before_hook_name .. ".exec(...)" ..
-                            "end"
-                        )
-                    )()
+                    MODS_HOOKS[i].hooks[j].exec = function(...)
+                        return MODS_HOOKS[i].hooks[j - 1].exec(...)
+                    end
                 end
             end
 
@@ -131,7 +114,7 @@ local function patch()
         end
 
         -- Patch orginal function call
-        assert(loadstring(item.name .. " = " .. item_name .. ".hooks[" .. last_j .. "].exec"))()
+        item.obj[item.name] = MODS_HOOKS[i].hooks[last_j].exec
     end
 end
 
@@ -225,10 +208,8 @@ local function remove(func_name, mod_name)
                     end
                 end
             else
-                local item_name = "MODS_HOOKS[" .. tostring(i) .. "]"
-
                 -- Restore orginal function
-                assert(loadstring(item.name .. " = " .. item_name .. ".func"))()
+                item.obj[item.name] = MODS_HOOKS[i].func
 
                 -- Remove hook function
                 table.remove(MODS_HOOKS, i)

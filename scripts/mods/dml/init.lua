@@ -20,13 +20,13 @@ function loader:init(libs, mod_data, boot_gui)
 
     -- The mod loader needs to remain active during game play, to
     -- enable reloads
-    Mods.hook.set("DML", "StateGame.update", function(func, dt, ...)
+    Mods.hook.set("DML", GameState, "update", function(func, dt, ...)
         mod_loader:update(dt)
         return func(dt, ...)
     end)
 
     -- Skip splash view
-    Mods.hook.set("Base", "StateSplash.on_enter", function(func, self, ...)
+    Mods.hook.set("Base", StateSplash, "on_enter", function(func, self, ...)
         local result = func(self, ...)
 
         self._should_skip = true
@@ -36,7 +36,7 @@ function loader:init(libs, mod_data, boot_gui)
     end)
 
     -- Trigger state change events
-    Mods.hook.set("Base", "GameStateMachine._change_state", function(func, self, ...)
+    Mods.hook.set("Base", GameStateMachine, "_change_state", function(func, self, ...)
         local old_state = self._state
         local old_state_name = old_state and self:current_state_name()
 
@@ -57,7 +57,7 @@ function loader:init(libs, mod_data, boot_gui)
     end)
 
     -- Trigger ending state change event
-    Mods.hook.set("Base", "GameStateMachine.destroy", function(func, self, ...)
+    Mods.hook.set("Base", GameStateMachine, "destroy", function(func, self, ...)
         local old_state = self._state
         local old_state_name = old_state and self:current_state_name()
 
