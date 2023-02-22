@@ -8,6 +8,7 @@ ignore = {
     "12.", -- ignore "Setting a read-only global variable/Setting a read-only field of a global variable."
     "542", -- disable warnings for empty if branches. These are useful sometime and easy to notice otherwise.
     "212/self", -- Disable unused self warnings.
+    "432/self", -- Allow shadowing `self`, often happens when creating hooks in functions
 }
 
 std = "+DT+DML"
@@ -28,6 +29,7 @@ stds["DML"] = {
                 "_get_item_hook",
                 "_patch",
             }},
+            message = { fields = { "echo", "notify" }},
             "original_require",
             "require_store",
             "original_class",
