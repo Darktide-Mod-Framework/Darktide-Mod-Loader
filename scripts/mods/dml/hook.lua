@@ -49,7 +49,7 @@ local function get_item(obj, func_name)
     local item = table.clone(item_template)
     item.obj = obj
     item.name = func_name
-    item.func = get_func(func_name)
+    item.func = get_func(obj, func_name)
 
     -- Save
     table.insert(MODS_HOOKS, item)
@@ -121,8 +121,8 @@ end
 --
 -- Set hook
 --
-local function set(mod_name, func_name, hook_func)
-    local item = get_item(func_name)
+local function set(mod_name, obj, func_name, hook_func)
+    local item = get_item(obj, func_name)
     local item_hook = get_item_hook(item, mod_name)
 
     print_log_info(mod_name, "Hooking " .. func_name)

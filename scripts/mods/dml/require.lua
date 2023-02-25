@@ -6,12 +6,11 @@ Mods.original_require = original_require
 
 local can_insert = function(filepath, new_result)
     local store = require_store[filepath]
-    local num_store = #store
-    if not store or num_store == 0 then
+    if not store or #store then
         return true
     end
 
-    if store[num_store] ~= new_result then
+    if store[#store] ~= new_result then
         return true
     end
 end

@@ -3,6 +3,10 @@
 -- the purpose of loading mods within Warhammer 40,000: Darktide.
 local ModLoader = class("ModLoader")
 
+local ScriptGui = require("scripts/foundation/utilities/script_gui")
+
+local FONT_MATERIAL = "content/ui/fonts/arial"
+
 local LOG_LEVELS = {
     spew = 4,
     info = 3,
@@ -19,8 +23,9 @@ local BUTTON_INDEX_R = Keyboard.button_index("r")
 local BUTTON_INDEX_LEFT_SHIFT = Keyboard.button_index("left shift")
 local BUTTON_INDEX_LEFT_CTRL = Keyboard.button_index("left ctrl")
 
-ModLoader.init = function(self, boot_gui, mod_data)
+ModLoader.init = function(self, mod_data, libs, boot_gui)
     self._mod_data = mod_data
+    self._libs = libs
     self._gui = boot_gui
 
     self._settings = Application.user_setting("mod_settings") or DEFAULT_SETTINGS
@@ -30,10 +35,6 @@ ModLoader.init = function(self, boot_gui, mod_data)
     self._chat_print_buffer = {}
     self._reload_data = {}
     self._ui_time = 0
-
-    if Crashify then
-      Crashify.print_property("modded", true)
-    end
 
     self._state = "scanning"
 end
@@ -55,7 +56,9 @@ ModLoader._draw_state_to_gui = function(self, gui, dt)
         status_str = string.format("Loading mod %q", mod.name)
     end
 
-    Gui.text(gui, status_str .. string.rep(".", (2 * t) % 4), "materials/fonts/arial", 16, nil, Vector3(5, 10, 1))
+    local msg = status_str .. string.rep(".", (2 * t) % 4)
+    Log.info("ModLoader", msg)
+    ScriptGui.text(gui, msg, FONT_MATERIAL, 48, Vector3(20, 30, 1), Color.white())
 end
 
 ModLoader.remove_gui = function(self)
@@ -120,9 +123,9 @@ ModLoader.update = function(self, dt)
 
                 if not ok then self:print("error", "%s", object) end
 
-                local name = mod.name
                 mod.object = object or {}
 
+                self:_run_callback(mod, "init", self._reload_data[mod.id])
                 self:print("info", "%s loaded.", name)
 
                 self._state = self:_load_mod(self._mod_load_index + 1)
@@ -197,6 +200,7 @@ ModLoader._build_mod_table = function(self)
             name = mod_data.name,
             loaded_packages = {},
             packages = mod_data.packages,
+            data = mod_data,
         }
     end
 
