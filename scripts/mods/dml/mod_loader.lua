@@ -3,6 +3,9 @@
 -- the purpose of loading mods within Warhammer 40,000: Darktide.
 local ModLoader = class("ModLoader")
 
+local table_unpack = table.unpack or unpack
+local table_pack = table.pack or pack
+
 local ScriptGui = require("scripts/foundation/utilities/script_gui")
 
 local FONT_MATERIAL = "content/ui/fonts/arial"
@@ -58,7 +61,7 @@ ModLoader._draw_state_to_gui = function(self, gui, dt)
 
     local msg = status_str .. string.rep(".", (2 * t) % 4)
     Log.info("ModLoader", msg)
-    ScriptGui.text(gui, msg, FONT_MATERIAL, 48, Vector3(20, 30, 1), Color.white())
+    ScriptGui.text(gui, msg, FONT_MATERIAL, 25, Vector3(20, 30, 1), Color.white())
 end
 
 ModLoader.remove_gui = function(self)
@@ -119,14 +122,17 @@ ModLoader.update = function(self, dt)
 
             if next_index > #mod_data.packages then
                 mod.state = "running"
-                local ok, object = pcall(mod_data.run)
+                local ok, object = xpcall(mod_data.run, self._libs.debug.traceback)
 
-                if not ok then self:print("error", "%s", object) end
+                if not ok then
+                    Log.error("ModLoader", "Failed 'run' for %q: %s", mod.name, object)
+                end
 
                 mod.object = object or {}
 
                 self:_run_callback(mod, "init", self._reload_data[mod.id])
-                self:print("info", "%s loaded.", name)
+
+                Log.info("ModLoader", "Finished loading %q", mod.name)
 
                 self._state = self:_load_mod(self._mod_load_index + 1)
             else
@@ -142,7 +148,7 @@ ModLoader.update = function(self, dt)
     end
 
     if old_state ~= self._state then
-        self:print("info", "%s -> %s", old_state, self._state)
+        Log.info("ModLoader", "%s -> %s", old_state, self._state)
     end
 end
 
@@ -170,20 +176,26 @@ ModLoader._run_callback = function (self, mod, callback_name, ...)
         return
     end
 
-    local success, val = pcall(cb, object, ...)
+    local args = table_pack(...)
+
+    local success, val = xpcall(function() return cb(object, table_unpack(args)) end, self._libs.debug.traceback)
 
     if success then
         return val
     else
-        self:print("error", "%s", val or "[unknown error]")
-        self:print("error", "Failed to run callback %q for mod %q with id %d. Disabling callbacks until reload.", callback_name, mod.name, mod.id)
+        Log.error("ModLoader", "Failed to run callback %q for mod %q with id %q. Disabling callbacks until reload.", callback_name, mod.name, mod.id)
+        if type(val) == "table" then
+            Log.error("ModLoader", "<<Script Error>>%s<</Script Error>>\n<<Lua Stack>>\n%s\n<</Lua Stack>>\n<<Lua Locals>>\n%s\n<</Lua Locals>>\n<<Lua Self>>\n%s\n<</Lua Self>>", val.error, val.traceback, val.locals, val.self)
+        else
+            Log.error("ModLoader", "Error: %s", val or "[unknown error]")
+        end
 
         mod.callbacks_disabled = true
     end
 end
 
 ModLoader._start_scan = function(self)
-    self:print("info", "Starting mod scan")
+    Log.info("ModLoader", "Starting mod scan")
     self._state = "scanning"
 end
 
@@ -191,7 +203,7 @@ ModLoader._build_mod_table = function(self)
     fassert(table.is_empty(self._mods), "Trying to add mods to non-empty mod table")
 
     for i, mod_data in ipairs(self._mod_data) do
-        printf("[ModLoader] mods[%d] = id=%q | name=%q", i, mod_data.id, mod_data.name)
+        Log.info("ModLoader", "mods[%d] = id=%q | name=%q", i, mod_data.id, mod_data.name)
 
         self._mods[i] = {
             id = mod_data.id,
@@ -206,7 +218,7 @@ ModLoader._build_mod_table = function(self)
 
     self._num_mods = #self._mods
 
-    self:print("info", "Found %i mods", #self._mods)
+    Log.info("ModLoader", "Found %i mods", #self._mods)
 end
 
 ModLoader._load_mod = function(self, index)
@@ -220,11 +232,11 @@ ModLoader._load_mod = function(self, index)
         return "done"
     end
 
-    self:print("info", "loading mod %i", mod.id)
+    Log.info("ModLoader", "Loading mod %q", mod.id)
 
     mod.state = "loading"
 
-    Crashify.print_property(string.format("Mod:%i:%s", mod.id, mod.name), true)
+    Crashify.print_property(string.format("Mod:%s:%s", mod.id, mod.name), true)
 
     self._mod_load_index = index
 
@@ -241,7 +253,7 @@ ModLoader._load_package = function(self, mod, index)
         return
     end
 
-    self:print("info", "loading package %q", package_name)
+    Log.info("ModLoader", "Loading package %q", package_name)
 
     local resource_handle = Application.resource_package(package_name)
     self._loading_resource_handle = resource_handle
@@ -253,12 +265,12 @@ end
 
 ModLoader.unload_all_mods = function(self)
     if self._state ~= "done" then
-        self:print("error", "Mods can't be unloaded, mod state is not \"done\". current: %q", self._state)
+        Log.error("ModLoader", "Mods can't be unloaded, mod state is not \"done\". current: %q", self._state)
 
         return
     end
 
-    self:print("info", "Unload all mod packages")
+    Log.info("ModLoader", "Unload all mod packages")
 
     for i = self._num_mods, 1, -1 do
         local mod = self._mods[i]
@@ -278,7 +290,7 @@ ModLoader.unload_mod = function(self, index)
     local mod = self._mods[index]
 
     if mod then
-        self:print("info", "Unloading %q.", mod.name)
+        Log.info("ModLoader", "Unloading %q.", mod.name)
 
         for _, handle in ipairs(mod.loaded_packages) do
             ResourcePackage.unload(handle)
@@ -287,22 +299,22 @@ ModLoader.unload_mod = function(self, index)
 
         mod.state = "not_loaded"
     else
-        self:print("error", "Mod index %i can't be unloaded, has not been loaded", index)
+        Log.error("ModLoader", "Mod index %i can't be unloaded, has not been loaded", index)
     end
 end
 
 ModLoader._reload_mods = function(self)
-    self:print("info", "reloading mods")
+    Log.info("ModLoader", "reloading mods")
 
     for i = 1, self._num_mods, 1 do
         local mod = self._mods[i]
 
         if mod and mod.state == "running" then
-            self:print("info", "reloading %s", mod.name)
+            Log.info("ModLoader", "reloading %s", mod.name)
 
             self._reload_data[mod.id] = self:_run_callback(mod, "on_reload")
         else
-            self:print("info", "not reloading mod, state: %s", mod.state)
+            Log.info("ModLoader", "not reloading mod, state: %s", mod.state)
         end
     end
 
@@ -322,20 +334,21 @@ ModLoader.on_game_state_changed = function(self, status, state_name, state_objec
 			end
 		end
     else
-        self:print("warning", "Ignored on_game_state_changed call due to being in state %q", self._state)
+        Log.warning("ModLoader", "Ignored on_game_state_changed call due to being in state %q", self._state)
     end
 end
 
 ModLoader.print = function(self, level, str, ...)
-    local message = string.format("[ModLoader][" .. level .. "] " .. str, ...)
-    local log_level = LOG_LEVELS[level] or 99
+    local f = Log[level]
+    if f then
+        f("ModLoader", str, ...)
+    else
+        local message = string.format("[ModLoader][" .. level .. "] " .. str, ...)
+        local log_level = LOG_LEVELS[level] or 99
 
-    if log_level <= 2 then
-        print(message)
-    end
-
-    if log_level <= self._settings.log_level then
-        self._chat_print_buffer[#self._chat_print_buffer + 1] = message
+        if log_level <= 2 then
+            print(message)
+        end
     end
 end
 
