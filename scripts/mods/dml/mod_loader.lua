@@ -27,6 +27,7 @@ local BUTTON_INDEX_LEFT_SHIFT = Keyboard.button_index("left shift")
 local BUTTON_INDEX_LEFT_CTRL = Keyboard.button_index("left ctrl")
 
 ModLoader.init = function(self, mod_data, libs, boot_gui)
+    table.dump(mod_data, nil, 5, function(...) Log.info("ModLoader", ...) end)
     self._mod_data = mod_data
     self._libs = libs
     self._gui = boot_gui
