@@ -68,6 +68,25 @@ ModLoader.remove_gui = function(self)
     self._gui = nil
 end
 
+ModLoader.mod_data = function(self, id)
+    -- Since this primarily exists for DMF,
+    -- we can optimize the search for its use case of looking for the
+    -- mod currently being loaded
+    local mod_data = self._mods[self._mod_load_index]
+
+    if mod_data.id ~= id then
+        mod_data = nil
+
+        for _, v in ipairs(self._mods) do
+            if v.id == id then
+                mod_data = v
+            end
+        end
+    end
+
+    return mod_data
+end
+
 ModLoader._check_reload = function()
     return Keyboard.pressed(BUTTON_INDEX_R) and
         Keyboard.button(BUTTON_INDEX_LEFT_SHIFT) +
