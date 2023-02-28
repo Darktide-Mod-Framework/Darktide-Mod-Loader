@@ -26,10 +26,10 @@ local BUTTON_INDEX_R = Keyboard.button_index("r")
 local BUTTON_INDEX_LEFT_SHIFT = Keyboard.button_index("left shift")
 local BUTTON_INDEX_LEFT_CTRL = Keyboard.button_index("left ctrl")
 
-ModLoader.init = function(self, mod_data, libs, boot_gui)
+ModLoader.init = function(self, mod_data, boot_gui)
     table.dump(mod_data, nil, 5, function(...) Log.info("ModLoader", ...) end)
+
     self._mod_data = mod_data
-    self._libs = libs
     self._gui = boot_gui
 
     self._settings = Application.user_setting("mod_settings") or DEFAULT_SETTINGS
@@ -142,7 +142,7 @@ ModLoader.update = function(self, dt)
 
             if next_index > #mod_data.packages then
                 mod.state = "running"
-                local ok, object = xpcall(mod_data.run, self._libs.debug.traceback)
+                local ok, object = xpcall(mod_data.run, Script.callstack)
 
                 if not ok then
                     Log.error("ModLoader", "Failed 'run' for %q: %s", mod.name, object)
@@ -198,7 +198,7 @@ ModLoader._run_callback = function (self, mod, callback_name, ...)
 
     local args = table_pack(...)
 
-    local success, val = xpcall(function() return cb(object, table_unpack(args)) end, self._libs.debug.traceback)
+    local success, val = xpcall(function() return cb(object, table_unpack(args)) end, Script.callstack)
 
     if success then
         return val

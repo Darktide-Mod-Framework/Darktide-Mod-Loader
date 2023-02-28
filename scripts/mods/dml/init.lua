@@ -1,3 +1,6 @@
+dofile("scripts/mods/dml/message")
+dofile("scripts/mods/dml/hook")
+
 local StateGame = require("scripts/game_states/state_game")
 local StateSplash = require("scripts/game_states/game/state_splash")
 local GameStateMachine = require("scripts/foundation/utilities/game_state_machine")
@@ -6,20 +9,9 @@ local GameStateMachine = require("scripts/foundation/utilities/game_state_machin
 -- to initialize the modding environment.
 local loader = {}
 
-Mods = {}
-
-function loader:init(mod_data, libs, boot_gui)
-    -- The metatable prevents overwriting these
-    self._libs = setmetatable({}, { __index = libs })
-    Mods.lua = self._libs
-
-    dofile("scripts/mods/dml/message")
-    dofile("scripts/mods/dml/require")
-    dofile("scripts/mods/dml/class")
-    dofile("scripts/mods/dml/hook")
-
+function loader:init(mod_data, boot_gui)
     local ModLoader = dofile("scripts/mods/dml/mod_loader")
-    local mod_loader = ModLoader:new(mod_data, libs, boot_gui)
+    local mod_loader = ModLoader:new(mod_data, boot_gui)
     self._mod_loader = mod_loader
     Managers.mod = mod_loader
 
