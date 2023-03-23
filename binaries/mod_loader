@@ -324,7 +324,7 @@ local StateLoadAudioSettings = require("scripts/game_states/boot/state_load_audi
 local StateLoadBootAssets = require("scripts/game_states/boot/state_load_boot_assets")
 
 -- Unused right now, but might be useful in case we want to re-add the state at some point
-local StateLoadMods = require("scripts/game_states/boot/state_load_mods")
+--local StateLoadMods = require("scripts/game_states/boot/state_load_mods")
 
 local StateLoadRenderSettings = require("scripts/game_states/boot/state_load_render_settings")
 local StateRequireScripts = require("scripts/game_states/boot/state_require_scripts")
