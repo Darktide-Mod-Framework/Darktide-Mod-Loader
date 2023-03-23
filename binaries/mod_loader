@@ -322,14 +322,10 @@ local ParameterResolver = require("scripts/foundation/utilities/parameters/param
 local StateBoot = require("scripts/game_states/state_boot")
 local StateLoadAudioSettings = require("scripts/game_states/boot/state_load_audio_settings")
 local StateLoadBootAssets = require("scripts/game_states/boot/state_load_boot_assets")
-
--- Unused right now, but might be useful in case we want to re-add the state at some point
-local StateLoadMods = require("scripts/game_states/boot/state_load_mods")
-
 local StateLoadRenderSettings = require("scripts/game_states/boot/state_load_render_settings")
 local StateRequireScripts = require("scripts/game_states/boot/state_require_scripts")
 
-Main.init = function (self)
+function Main:init()
   Script.configure_garbage_collection(Script.ACCEPTABLE_GARBAGE, 0.1, Script.MAXIMUM_GARBAGE, 0.5, Script.FORCE_FULL_COLLECT_GARBAGE_LEVEL, 1, Script.MINIMUM_COLLECT_TIME_MS, 0.1, Script.MAXIMUM_COLLECT_TIME_MS, 0.5)
   ParameterResolver.resolve_command_line()
   ParameterResolver.resolve_game_parameters()
@@ -380,7 +376,7 @@ Main.init = function (self)
   end
 
   self._package_manager = package_manager
-  self._sm = GameStateMachine:new(nil, StateBoot, params)
+  self._sm = GameStateMachine:new(nil, StateBoot, params, nil, nil, "Main")
 
   -- #######################
   -- ## Mod intialization ##
@@ -388,26 +384,27 @@ Main.init = function (self)
   -- #######################
 end
 
-Main.update = function (self, dt)
+function Main:update(dt)
   self._sm:update(dt)
 end
 
-Main.render = function (self)
+function Main:render()
   self._sm:render()
 end
 
-Main.on_reload = function (self, refreshed_resources)
+function Main:on_reload(refreshed_resources)
   self._sm:on_reload(refreshed_resources)
 end
 
-Main.on_close = function (self)
+function Main:on_close()
   local should_close = self._sm:on_close()
 
   return should_close
 end
 
-Main.shutdown = function (self)
+function Main:shutdown()
   Application.force_silent_exit_policy()
+
   if rawget(_G, "Crashify") then
     Crashify.print_property("shutdown", true)
   end
@@ -420,7 +417,9 @@ Main.shutdown = function (self)
     owns_package_manager = false
   end
 
-  self._sm:destroy()
+  local on_shutdown = true
+
+  self._sm:destroy(on_shutdown)
 
   if owns_package_manager then
     self._package_manager:delete()
@@ -446,8 +445,14 @@ end
 function on_activate(active)
   print("LUA window => " .. (active and "ACTIVATED" or "DEACTIVATED"))
 
-  if active and rawget(_G, "Managers") and Managers.dlc then
-    Managers.dlc:evaluate_consumables()
+  if active and rawget(_G, "Managers") then
+    if Managers.dlc then
+      Managers.dlc:evaluate_consumables()
+    end
+
+    if Managers.account then
+      Managers.account:refresh_communication_restrictions()
+    end
   end
 end
 
