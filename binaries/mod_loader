@@ -1,10 +1,5 @@
 local mod_directory = "./../mods"
 
--- Mod initialization code --
-local debug = debug
-local io = io
-local ffi = ffi
-
 local assert = assert
 local ipairs = ipairs
 local loadstring = loadstring
@@ -19,6 +14,11 @@ local string = string
 local table = table
 local tonumber = tonumber
 local tostring = tostring
+
+-- Mod initialization code --
+local debug = rawget(_G, "debug")
+local io    = rawget(_G, "io")
+local ffi   = require("ffi")
 
 Mods = {
   file = {},

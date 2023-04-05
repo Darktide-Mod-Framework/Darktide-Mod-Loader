@@ -1,5 +1,5 @@
 @echo off
-echo Starting Darktide patcher...
+echo Starting Darktide patcher from %~dp0...
 .\tools\dtkit-patch --toggle .\bundle
 if errorlevel 1 goto failure
 pause
