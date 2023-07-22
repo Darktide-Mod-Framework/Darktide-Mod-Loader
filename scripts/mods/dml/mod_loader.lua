@@ -168,7 +168,7 @@ ModLoader.update = function(self, dt)
     local gui = self._gui
 
     if gui then
-      self:_draw_state_to_gui(gui, dt)
+        self:_draw_state_to_gui(gui, dt)
     end
 
     if old_state ~= self._state then
@@ -192,7 +192,7 @@ ModLoader.destroy = function(self)
     self:unload_all_mods()
 end
 
-ModLoader._run_callback = function (self, mod, callback_name, ...)
+ModLoader._run_callback = function(self, mod, callback_name, ...)
     local object = mod.object
     local cb = object[callback_name]
 
@@ -207,9 +207,12 @@ ModLoader._run_callback = function (self, mod, callback_name, ...)
     if success then
         return val
     else
-        Log.error("ModLoader", "Failed to run callback %q for mod %q with id %q. Disabling callbacks until reload.", callback_name, mod.name, mod.id)
+        Log.error("ModLoader", "Failed to run callback %q for mod %q with id %q. Disabling callbacks until reload.",
+            callback_name, mod.name, mod.id)
         if type(val) == "table" then
-            Log.error("ModLoader", "<<Script Error>>%s<</Script Error>>\n<<Lua Stack>>\n%s\n<</Lua Stack>>\n<<Lua Locals>>\n%s\n<</Lua Locals>>\n<<Lua Self>>\n%s\n<</Lua Self>>", val.error, val.traceback, val.locals, val.self)
+            Log.error("ModLoader",
+                "<<Script Error>>%s<</Script Error>>\n<<Lua Stack>>\n%s\n<</Lua Stack>>\n<<Lua Locals>>\n%s\n<</Lua Locals>>\n<<Lua Self>>\n%s\n<</Lua Self>>",
+                val.error, val.traceback, val.locals, val.self)
         else
             Log.error("ModLoader", "Error: %s", val or "[unknown error]")
         end
@@ -350,13 +353,13 @@ end
 
 ModLoader.on_game_state_changed = function(self, status, state_name, state_object)
     if self._state == "done" then
-		for i = 1, self._num_mods, 1 do
-			local mod = self._mods[i]
+        for i = 1, self._num_mods, 1 do
+            local mod = self._mods[i]
 
-			if mod and not mod.callbacks_disabled then
-				self:_run_callback(mod, "on_game_state_changed", status, state_name, state_object)
-			end
-		end
+            if mod and not mod.callbacks_disabled then
+                self:_run_callback(mod, "on_game_state_changed", status, state_name, state_object)
+            end
+        end
     else
         Log.warning("ModLoader", "Ignored on_game_state_changed call due to being in state %q", self._state)
     end
