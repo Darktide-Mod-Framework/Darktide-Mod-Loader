@@ -47,6 +47,10 @@ ModLoader.developer_mode_enabled = function(self)
     return self._settings.developer_mode
 end
 
+ModLoader.set_developer_mode = function(self, enabled)
+    self._settings.developer_mode = enabled
+end
+
 ModLoader._draw_state_to_gui = function(self, gui, dt)
     local state = self._state
     local t = self._ui_time + dt
