@@ -1,5 +1,7 @@
 # dtkit-patch
 
-Simple tool based on Aussiemon's nodejs script for patching `bundle_database.data` to load Darktide mods.
+Simple rust script built from this source: https://github.com/ManShanko/dtkit-patch
 
-https://github.com/ManShanko/dtkit-patch
+Simply clone the repository and run:
+`cargo build --verbose --release --target x86_64-unknown-linux-gnu`
+
