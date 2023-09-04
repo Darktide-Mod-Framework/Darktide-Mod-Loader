@@ -12,13 +12,13 @@ function help_user {
 # patches game files to enable mods
 function enable_mods {
     echo enabling mods...
-    ./tools/dtkit-patch --patch ./bundle
+    ./tools/dtkit-patch --patch bundle
 }
 
 # disables the mod patch
 function disable_mods {
     echo disabling mods...
-    ./tools/dtkit-patch --unpatch ./bundle
+    ./tools/dtkit-patch --unpatch bundle
 }
 
 # disables the mod patch and delete all extraneous files
@@ -37,6 +37,8 @@ function uninstall_mods {
 
 
 ### MAIN #
+dirgame="$(dirname "$0")"
+cd "$dirgame"
 if [ -z "$1" ]; then
     echo No option selected!
     help_user
