@@ -4,12 +4,20 @@
 
 ### This mod does not need to be added to your mod_load_order.txt file.
 
-## Installation:
+## Installation (Windows):
     1. Copy the Darktide Mod Loader files to your game directory and overwrite existing.
     2. Run the "toggle_darktide_mods.bat" script in your game folder.
     3. Copy the Darktide Mod Framework files to your "mods" directory (<game folder>/mods) and overwrite existing.
     3. Install other mods by downloading them from the Nexus site (https://www.nexusmods.com/warhammer40kdarktide) then adding them to "<game folder>/mods/mod_load_order.txt" with a text editor.
     
+## Installation (Linux):
+    1. All Windows instructions for installing/updating/removing apply to Linux, except:
+        - you need to use "toggle_darktide_mods.sh" instead of "toggle_darktide_mods.bat"
+        - you will need one of the following installed and on your path, please see the documentation for your distribution's package manager:
+            - `wine`
+            - `cargo` and `git`
+    If for some reason you experience problems using the wine patcher, you can force the use of a native patcher with `toggle_darktide_mods.sh -f`
+
 ## Disable mods:
     * Disable individual mods by removing their name from your mods/mod_load_order.txt file.
     * Run the "toggle_darktide_mods.bat" script at your game folder and choose to unpatch the bundle database to disable all mod loading.
