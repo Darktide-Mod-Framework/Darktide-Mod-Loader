@@ -218,6 +218,17 @@ ModManager._build_mod_table = function (self)
 	self._num_mods = #self._mods
 end
 
+local _mod_data_cache = {}
+---@param mod_name string
+---@return table|false
+local _get_mod_data = function(mod_name)
+	if _mod_data_cache[mod_name] == nil then
+		_mod_data_cache[mod_name] = _io.exec_with_return(mod_name, mod_name, "mod")
+	end
+	return _mod_data_cache[mod_name]
+end
+
+local _reorders = 0
 ModManager._load_mod = function (self, index)
 	self._ui_time = 0
 	local mods = self._mods
@@ -239,7 +250,7 @@ ModManager._load_mod = function (self, index)
 	self:print("info", "loading mod %s", id)
 	Crashify.print_property("modded", true)
 
-	local mod_data = _io.exec_with_return(mod_name, mod_name, "mod")
+	local mod_data = _get_mod_data(mod_name)
 
 	if not mod_data then
 		self:print("error", "Mod file is invalid or missing. Mod %q with id %d skipped.", mod.name, mod.id)
@@ -249,6 +260,33 @@ ModManager._load_mod = function (self, index)
 		return self:_load_mod(index + 1)
 	end
 	self:print("spew", "<mod info>\n%s\n</mod info>", mod_data)
+
+	-- Given a list of mod handles in the optional field mod_data.load_after, reinsert current mod after handle found nearest end of mod list
+	if mod_data.load_after then
+		local load_after_index = nil
+		for i = #self._mods, index, -1 do
+			if table.find(mod_data.load_after, self._mods[i].handle) then
+				load_after_index = i
+				break
+			end
+		end
+
+		if load_after_index then
+			if _reorders > 50 then
+				self:print("error", "mod %s has exceeded the reordering limit", mod.handle)
+				mod.enabled = false
+				return self:_load_mod(index + 1)
+			end
+
+			_reorders = _reorders + 1
+			table.remove(self._mods, index)
+			table.insert(self._mods, load_after_index, mod)
+
+			self:print("info", "delaying load of mod %s", mod.handle)
+
+			return self:_load_mod(index)
+		end
+	end
 
 	mod.data = mod_data
 	mod.name = mod.name or mod_data.NAME or "Mod " .. mod.id
