@@ -7,13 +7,11 @@ local GameStateMachine = require("scripts/foundation/utilities/game_state_machin
 
 -- The loader object that is used during game boot
 -- to initialize the modding environment.
-local loader = {}
+local DML = {}
 
-function loader:init(mod_data, boot_gui)
+function DML.create_loader(mod_data, boot_gui)
     local ModLoader = dofile("scripts/mods/dml/mod_loader")
     local mod_loader = ModLoader:new(mod_data, boot_gui)
-    self._mod_loader = mod_loader
-    Managers.mod = mod_loader
 
     -- The mod loader needs to remain active during game play, to
     -- enable reloads
@@ -64,10 +62,11 @@ function loader:init(mod_data, boot_gui)
 
         return func(self, ...)
     end)
+
+    return mod_loader
 end
 
-function loader:update(dt)
-    local mod_loader = self._mod_loader
+function DML.update(mod_loader, dt)
     mod_loader:update(dt)
 
     local done = mod_loader:all_mods_loaded()
@@ -78,8 +77,8 @@ function loader:update(dt)
     return done
 end
 
-function loader:done()
-    return self._mod_loader:all_mods_loaded()
+function DML.done(mod_loader)
+    return mod_loader:all_mods_loaded()
 end
 
-return loader
+return DML

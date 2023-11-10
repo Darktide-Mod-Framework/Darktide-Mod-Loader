@@ -59,13 +59,12 @@ ModLoader._draw_state_to_gui = function(self, gui, dt)
 
     if state == "scanning" then
         status_str = "Scanning for mods"
-    elseif state == "loading" then
+    elseif state == "loading" or state == "initializing" then
         local mod = self._mods[self._mod_load_index]
         status_str = string.format("Loading mod %q", mod.name)
     end
 
     local msg = status_str .. string.rep(".", (2 * t) % 4)
-    Log.info("ModLoader", msg)
     ScriptGui.text(gui, msg, FONT_MATERIAL, 25, Vector3(20, 30, 1), Color.white())
 end
 
@@ -117,24 +116,19 @@ ModLoader.update = function(self, dt)
         self._reload_requested = true
     end
 
-    if self._reload_requested and self._state == "done" then
+    if self._reload_requested and old_state == "done" then
         self:_reload_mods()
     end
 
-    if self._state == "done" then
-        for i = 1, self._num_mods, 1 do
-            local mod = self._mods[i]
-
-            if mod and not mod.callbacks_disabled then
-                self:_run_callback(mod, "update", dt)
-            end
-        end
-    elseif self._state == "scanning" then
+    if old_state == "done" then
+        self:_run_callbacks("update", dt)
+    elseif old_state == "scanning" then
+        Log.info("ModLoader", "Scanning for mods")
         self:_build_mod_table()
 
         self._state = self:_load_mod(1)
         self._ui_time = 0
-    elseif self._state == "loading" then
+    elseif old_state == "loading" then
         local handle = self._loading_resource_handle
 
         if ResourcePackage.has_loaded(handle) then
@@ -144,29 +138,47 @@ ModLoader.update = function(self, dt)
             local next_index = mod.package_index + 1
             local mod_data = mod.data
 
-            if next_index > #mod_data.packages then
-                mod.state = "running"
-                local ok, object = xpcall(mod_data.run, Script.callstack)
-
-                if not ok then
-                    Log.error("ModLoader", "Failed 'run' for %q: %s", mod.name, object)
-                end
-
-                mod.object = object or {}
-
-                self:_run_callback(mod, "init", self._reload_data[mod.id])
-
-                Log.info("ModLoader", "Finished loading %q", mod.name)
-
-                self._state = self:_load_mod(self._mod_load_index + 1)
-            else
+            if next_index <= #mod_data.packages then
                 self:_load_package(mod, next_index)
+            else
+                self._state = "initializing"
             end
         end
+    elseif old_state == "initializing" then
+        local mod = self._mods[self._mod_load_index]
+        local mod_data = mod.data
+
+        Log.info("ModLoader", "Initializing mod %q", mod.name)
+
+        mod.state = "running"
+        local ok, object = xpcall(mod_data.run, function(err)
+            if type(err) == "string" then
+                return err .. "\n" .. Script.callstack()
+            else
+                return err
+            end
+        end)
+
+        if not ok then
+            if object.error then
+                object = string.format(
+                    "%s\n<<Lua Stack>>\n%s\n<</Lua Stack>>\n<<Lua Locals>>\n%s\n<</Lua Locals>>\n<<Lua Self>>\n%s\n<</Lua Self>>",
+                    object.error, object.traceback, object.locals, object.self)
+            end
+
+            Log.error("ModLoader", "Failed 'run' for %q: %s", mod.name, object)
+        end
+
+        mod.object = object or {}
+
+        self:_run_callback(mod, "init", self._reload_data[mod.id])
+
+        Log.info("ModLoader", "Finished loading %q", mod.name)
+
+        self._state = self:_load_mod(self._mod_load_index + 1)
     end
 
     local gui = self._gui
-
     if gui then
         self:_draw_state_to_gui(gui, dt)
     end
@@ -181,15 +193,18 @@ ModLoader.all_mods_loaded = function(self)
 end
 
 ModLoader.destroy = function(self)
+    self:_run_callbacks("on_destroy")
+    self:unload_all_mods()
+end
+
+ModLoader._run_callbacks = function(self, callback_name, ...)
     for i = 1, self._num_mods, 1 do
         local mod = self._mods[i]
 
         if mod and not mod.callbacks_disabled then
-            self:_run_callback(mod, "on_destroy")
+            self:_run_callback(mod, callback_name, ...)
         end
     end
-
-    self:unload_all_mods()
 end
 
 ModLoader._run_callback = function(self, mod, callback_name, ...)
@@ -202,16 +217,25 @@ ModLoader._run_callback = function(self, mod, callback_name, ...)
 
     local args = table_pack(...)
 
-    local success, val = xpcall(function() return cb(object, table_unpack(args)) end, Script.callstack)
+    local success, val = xpcall(
+        function() return cb(object, table_unpack(args)) end,
+        function(err)
+            if type(err) == "string" then
+                return err .. "\n" .. Script.callstack()
+            else
+                return err
+            end
+        end
+    )
 
     if success then
         return val
     else
         Log.error("ModLoader", "Failed to run callback %q for mod %q with id %q. Disabling callbacks until reload.",
             callback_name, mod.name, mod.id)
-        if type(val) == "table" then
+        if val.error then
             Log.error("ModLoader",
-                "<<Script Error>>%s<</Script Error>>\n<<Lua Stack>>\n%s\n<</Lua Stack>>\n<<Lua Locals>>\n%s\n<</Lua Locals>>\n<<Lua Self>>\n%s\n<</Lua Self>>",
+                "Error: %s\n<<Lua Stack>>\n%s<</Lua Stack>>\n<<Lua Locals>>\n%s<</Lua Locals>>\n<<Lua Self>>\n%s<</Lua Self>>",
                 val.error, val.traceback, val.locals, val.self)
         else
             Log.error("ModLoader", "Error: %s", val or "[unknown error]")
@@ -230,7 +254,8 @@ ModLoader._build_mod_table = function(self)
     fassert(table.is_empty(self._mods), "Trying to add mods to non-empty mod table")
 
     for i, mod_data in ipairs(self._mod_data) do
-        Log.info("ModLoader", "mods[%d] = id=%q | name=%q", i, mod_data.id, mod_data.name)
+        Log.info("ModLoader", "mods[%d] = id=%q | name=%q | bundled=%s", i, mod_data.id, mod_data.name,
+            tostring(mod_data.bundled))
 
         self._mods[i] = {
             id = mod_data.id,
@@ -240,12 +265,13 @@ ModLoader._build_mod_table = function(self)
             loaded_packages = {},
             packages = mod_data.packages,
             data = mod_data,
+            bundled = mod_data.bundled or false,
         }
     end
 
     self._num_mods = #self._mods
 
-    Log.info("ModLoader", "Found %i mods", #self._mods)
+    Log.info("ModLoader", "Found %i mods", self._num_mods)
 end
 
 ModLoader._load_mod = function(self, index)
@@ -267,9 +293,12 @@ ModLoader._load_mod = function(self, index)
 
     self._mod_load_index = index
 
-    self:_load_package(mod, 1)
-
-    return "loading"
+    if mod.bundled and mod.packages[1] then
+        self:_load_package(mod, 1)
+        return "loading"
+    else
+        return "initializing"
+    end
 end
 
 ModLoader._load_package = function(self, mod, index)
@@ -287,7 +316,7 @@ ModLoader._load_package = function(self, mod, index)
 
     ResourcePackage.load(resource_handle)
 
-    mod.loaded_packages[#mod.loaded_packages + 1] = resource_handle
+    table.insert(mod.loaded_packages, resource_handle)
 end
 
 ModLoader.unload_all_mods = function(self)
@@ -353,13 +382,7 @@ end
 
 ModLoader.on_game_state_changed = function(self, status, state_name, state_object)
     if self._state == "done" then
-        for i = 1, self._num_mods, 1 do
-            local mod = self._mods[i]
-
-            if mod and not mod.callbacks_disabled then
-                self:_run_callback(mod, "on_game_state_changed", status, state_name, state_object)
-            end
-        end
+        self:_run_callbacks("on_game_state_changed", status, state_name, state_object)
     else
         Log.warning("ModLoader", "Ignored on_game_state_changed call due to being in state %q", self._state)
     end
