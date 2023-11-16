@@ -1,23 +1,23 @@
-dofile("scripts/mods/dml/message")
-dofile("scripts/mods/dml/hook")
-
-local StateGame = require("scripts/game_states/state_game")
-local StateSplash = require("scripts/game_states/game/state_splash")
-local GameStateMachine = require("scripts/foundation/utilities/game_state_machine")
+require("scripts/mods/dml/message")
+require("scripts/mods/dml/hook")
 
 -- The loader object that is used during game boot
 -- to initialize the modding environment.
 local DML = {}
 
-function DML.create_loader(mod_data, boot_gui)
+function DML.create_loader(mod_data)
+    local StateGame = require("scripts/game_states/state_game")
+    local StateSplash = require("scripts/game_states/game/state_splash")
+    local GameStateMachine = require("scripts/foundation/utilities/game_state_machine")
+
     local ModLoader = dofile("scripts/mods/dml/mod_loader")
-    local mod_loader = ModLoader:new(mod_data, boot_gui)
+    local mod_loader = ModLoader:new(mod_data)
 
     -- The mod loader needs to remain active during game play, to
     -- enable reloads
-    Mods.hook.set("DML", StateGame, "update", function(func, dt, ...)
+    Mods.hook.set("DML", StateGame, "update", function(func, self, dt, ...)
         mod_loader:update(dt)
-        return func(dt, ...)
+        return func(self, dt, ...)
     end)
 
     -- Skip splash view
@@ -64,21 +64,6 @@ function DML.create_loader(mod_data, boot_gui)
     end)
 
     return mod_loader
-end
-
-function DML.update(mod_loader, dt)
-    mod_loader:update(dt)
-
-    local done = mod_loader:all_mods_loaded()
-    if done then
-        mod_loader:remove_gui()
-    end
-
-    return done
-end
-
-function DML.done(mod_loader)
-    return mod_loader:all_mods_loaded()
 end
 
 return DML
