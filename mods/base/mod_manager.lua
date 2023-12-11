@@ -254,7 +254,8 @@ ModManager._load_mod = function (self, index)
 	mod.name = mod.name or mod_data.NAME or "Mod " .. mod.id
 	mod.state = "loading"
 
-	Crashify.print_property(string.format("Mod:%s:%s", id, mod.name), true)
+	Crashify.print_property(string.format("Mod:%s", mod.name), true)
+	print(string.format("[ModManager] Loading mod %s with id %s", mod.name, id))
 
 	self._mod_load_index = index
 
