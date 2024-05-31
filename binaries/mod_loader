@@ -237,20 +237,20 @@ local init_mod_framework = function()
   local ModManager = exec_with_return("base", "mod_manager")
 
   -- Initialize mods after loading managers and state_game files
-  Mods.hook.set("Base", "StateRequireScripts._require_scripts", function (req_func, ...)
+  Mods.hook.set("Base", "_G.CLASS.StateRequireScripts._require_scripts", function (req_func, ...)
     local req_result = req_func(...)
 
     Managers.mod = Managers.mod or ModManager:new()
 
     -- Update mod manager
-    Mods.hook.set("Base", "StateGame.update", function (func, self, dt, ...)
+    Mods.hook.set("Base", "_G.CLASS.StateGame.update", function (func, self, dt, ...)
       Managers.mod:update(dt)
 
       return func(self, dt, ...)
     end)
 
     -- Skip splash view
-    Mods.hook.set("Base", "StateSplash.on_enter", function (func, self, ...)
+    Mods.hook.set("Base", "_G.CLASS.StateSplash.on_enter", function (func, self, ...)
       local result = func(self, ...)
 
       self._should_skip = true
@@ -260,7 +260,7 @@ local init_mod_framework = function()
     end)
 
     -- Trigger state change events
-    Mods.hook.set("Base", "GameStateMachine._change_state", function (func, self, ...)
+    Mods.hook.set("Base", "_G.CLASS.GameStateMachine._change_state", function (func, self, ...)
       local old_state = self._state
       local old_state_name = old_state and self:current_state_name()
 
@@ -281,7 +281,7 @@ local init_mod_framework = function()
     end)
 
     -- Trigger ending state change event
-    Mods.hook.set("Base", "GameStateMachine.destroy", function (func, self, ...)
+    Mods.hook.set("Base", "_G.CLASS.GameStateMachine.destroy", function (func, self, ...)
       local old_state = self._state
       local old_state_name = old_state and self:current_state_name()
 
@@ -296,7 +296,7 @@ local init_mod_framework = function()
   end)
 
   -- Set crashify modded property
-  Mods.hook.set("Base", "StateRequireScripts._get_is_modded", function ()
+  Mods.hook.set("Base", "_G.CLASS.StateRequireScripts._get_is_modded", function ()
     return true
   end)
 end

@@ -12,9 +12,6 @@ _G.CLASS = _G.CLASS or setmetatable({}, {
 
 class = function(class_name, super_name, ...)
 	local result = Mods.original_class(class_name, super_name, ...)
-	if not rawget(_G, class_name) then
-		rawset(_G, class_name, result)
-	end
 	if not rawget(_G.CLASS, class_name) then
 		rawset(_G.CLASS, class_name, result)
 	end
