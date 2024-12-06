@@ -1,36 +1,43 @@
-# darktideML-4linux
-Generic 64-bit linux build and a handy BASH script for the Darktide Mod Loader
-Based on Aussiemon's original mod loader (https://github.com/Darktide-Mod-Framework/Darktide-Mod-Loader)
+### Contains a small set of basic functionality required for loading other mods. It also handles initial setup and contains a mod_load_order.txt file for mod management.
+
+### Game updates will automatically disable all mods. Re-run "toggle_darktide_mods.bat" to enable them again.
+
+### This mod does not need to be added to your mod_load_order.txt file.
 
 ## Installation:
-    1. Extract the mod loader files into your game folder and overwrite existing
-    2. Run the provided script with `sh /path/to/<game_folder>/handle_darktide_mods.sh --enable`
-    3. If the patch was successful, install the Darktide Mod Framework as normal
-    4. The Darktide Mod Framework and other mods can be downloaded from
-        https://www.nexusmods.com/warhammer40kdarktide
+    1. Copy the Darktide Mod Loader files to your game directory and overwrite existing.
+    2. Run the "toggle_darktide_mods.bat" script in your game folder.
+    3. Copy the Darktide Mod Framework files to your "mods" directory (<game folder>/mods) and overwrite existing.
+    3. Install other mods by downloading them from the Nexus site (https://www.nexusmods.com/warhammer40kdarktide) then adding them to "<game folder>/mods/mod_load_order.txt" with a text editor.
+    
+## Disable mods:
+    * Disable individual mods by removing their name from your mods/mod_load_order.txt file.
+    * Run the "toggle_darktide_mods.bat" script at your game folder and choose to unpatch the bundle database to disable all mod loading.
+    
+## Uninstallation:
+    1. Run the "toggle_darktide_mods.bat" script at your game folder and choose to unpatch the bundle database.
+    2. Delete the mods and tools folders from your game directory.
+    3. Delete the "mod_loader" file from <game folder>/binaries.
+    4. Delete the "9ba626afa44a3aa3.patch_999" file from <game folder>/bundle.
 
-## Disabling Mods:
-    * Disable individual mods by removing their name from your `mods/mod_load_order.txt`
-    * Run the provided script with the `--disable` argument
+## Updating the mod loader:
+    1. Run the "toggle_darktide_mods.bat" script at your game folder and choose to unpatch the bundle database.
+    2. Copy the Darktide Mod Loader files to your game directory and overwrite existing (except for mod_load_order.txt, if you wish to preserve your mod list).
+    3. Run "toggle_darktide_mods.bat" at your game folder to re-enable mods.
 
-## Uninstalling Mods:
-    * Run the provided script with `--uninstall`
-    * This will disable then delete __ALL__ modded files
-
-## Updating the Mod Loader:
-    1. Run the `--disable` command
-    2. Copy the Darktide Mod Loader files to your game directory and overwrite existing
-    (except for mod_load_order.txt, if you wish to preserve your mod list).
-    3. Run the `--enable` command
-
-## Updating any other Mod:
+## Updating any other mod:
     1. Delete the mod's directory from your mods folder.
     2. Extract the updated mod to your mods folder. All settings will remain intact.
 
-
-# Troubleshooting:
+## Troubleshooting:
+    * Make sure your game folder, mods folder, and mod_load_order.txt look like the images on this page: <https://www.nexusmods.com/warhammer40kdarktide/mods/19>
     * Make sure your mods have their dependencies listed above them in the load order.
     * Remove all mods from the load order (or add '--' before each line).
     * If all else fails, re-verify your game files and start the mod installation from the beginning.
-    * Attempt to compile your own `dtkit-patch` as described in `tools/README.md`
-    * Don't bug anyone but me with bugs. File an Issue on github or https://t.me/darktideML_4linux_SUPPORT
+
+## Creating mods:
+    1. Download the latest Darktide Mod Builder release: <https://github.com/Darktide-Mod-Framework/Darktide-Mod-Builder/releases>.
+    2. Add the unzipped folder to your environment path: <https://www.computerhope.com/issues/ch000549.htm>.
+    3. Run create_mod.bat or "dmb create <mod name>" in the mods folder. This generates a mod folder with the same name.
+    4. Add the new mod name to your mod_load_order.txt.
+    5. Reload mods or restart the game.
