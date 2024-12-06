@@ -530,4 +530,4 @@ end
 
 function on_low_memory_state_dump(global_path, registry_path, total_allocated, total_used)
   Log.exception("Memory", "Low on Lua memory. Allocated: '%d', Used: '%d'\n\t\t_G dump: %s\n\t\tRegistry dump: %s\n\t", total_allocated, total_used, global_path, registry_path)
-
+end
