@@ -1,7 +1,7 @@
 local ModManager = class("ModManager")
 
 local Keyboard = Keyboard
-local BUTTON_INDEX_R = Keyboard.button_index("r")
+local BUTTON_INDEX_L = Keyboard.button_index("l")
 local BUTTON_INDEX_LEFT_SHIFT = Keyboard.button_index("left shift")
 local BUTTON_INDEX_LEFT_CTRL = Keyboard.button_index("left ctrl")
 
@@ -86,7 +86,7 @@ ModManager._has_enabled_mods = function (self)
 end
 
 ModManager._check_reload = function (self)
-	return Keyboard.pressed(BUTTON_INDEX_R) and
+	return Keyboard.pressed(BUTTON_INDEX_L) and
 		Keyboard.button(BUTTON_INDEX_LEFT_SHIFT) + Keyboard.button(BUTTON_INDEX_LEFT_CTRL) == 2
 end
 
