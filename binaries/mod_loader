@@ -236,15 +236,6 @@ local init_mod_framework = function()
   -- The mod manager isn't in the bundles, so load our version from the mods folder
   local ModManager = exec_with_return("base", "mod_manager")
 
-  -- Mark the session as modded before the new Crashify boot step reads GameParameters.
-  Mods.hook.set("Base", "_G.CLASS.BootStateInitCrashify._state_update", function (state_update_func, self, ...)
-    if GameParameters then
-      rawset(GameParameters, "is_modded_crashify_property", true)
-    end
-
-    return state_update_func(self, ...)
-  end)
-
   -- Initialize mods after loading managers and state_game files
   Mods.hook.set("Base", "_G.CLASS.BootStateRequireGameScripts._state_update", function (state_update_func, self, ...)
     local state_update_result = state_update_func(self, ...)

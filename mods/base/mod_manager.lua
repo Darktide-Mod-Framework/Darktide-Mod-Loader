@@ -49,7 +49,6 @@ ModManager.init = function (self, boot_gui)
 	self._ui_time = 0
 	self._network_callbacks = {}
 
-	Crashify.print_property("realm", "modded")
 	
 	print("[ModManager] Starting mod manager...")
 
@@ -237,7 +236,6 @@ ModManager._load_mod = function (self, index)
 	local mod_name = mod.name
 
 	self:print("info", "loading mod %s", id)
-	Crashify.print_property("modded", true)
 
 	local mod_data = _io.exec_with_return(mod_name, mod_name, "mod")
 
