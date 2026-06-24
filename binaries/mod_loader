@@ -241,6 +241,16 @@ local init_mod_framework = function()
   -- The mod manager isn't in the bundles, so load our version from the mods folder
   _mod_framework_ModManager = exec_with_return("base", "mod_manager")
 
+  -- Mark the session as modded before the new Crashify boot step reads GameParameters.
+  -- Wrapped in pcall since BootStateInitCrashify may not be registered yet.
+  pcall(Mods.hook.set, "Base", "_G.CLASS.BootStateInitCrashify._state_update", function (state_update_func, self, ...)
+    if GameParameters then
+      rawset(GameParameters, "is_modded_crashify_property", true)
+    end
+
+    return state_update_func(self, ...)
+  end)
+
   print("[DMF]: Mod framework loaded, deferred initialization pending...")
 end
 
@@ -383,10 +393,40 @@ Main.on_reload = function (self, refreshed_resources)
   self._sm:on_reload(refreshed_resources)
 end
 
+Main.on_activate = function (self, is_active)
+  Log.info("Main", "LUA window => " .. (is_active and "ACTIVATED" or "DEACTIVATED"))
+  self._sm:on_activate(is_active)
+end
+
 Main.on_close = function (self)
   local should_close = self._sm:on_close()
 
+  if should_close then
+    Application.force_silent_exit_policy()
+  end
+
   return should_close
+end
+
+Main.on_suspend = function (self)
+  self._sm:on_suspend()
+end
+
+Main.on_resume = function (self)
+  GAME_RESUME_COUNT = GAME_RESUME_COUNT + 1
+
+  local Crashify = rawget(_G, "Crashify")
+
+  if Crashify then
+    Crashify.print_property("game_resume_count", GAME_RESUME_COUNT)
+    Crashify.print_breadcrumb(string.format("on_resume: %s", GAME_RESUME_COUNT))
+  end
+
+  self._sm:on_resume()
+end
+
+Main.on_constrained = function (self, is_constrained)
+  return self._sm:on_constrained(is_constrained)
 end
 
 Main.shutdown = function (self)
@@ -397,119 +437,48 @@ Main.shutdown = function (self)
   self._sm:destroy(exit_param)
 end
 
+local Main = Main
+
 function init()
-  Main:init()
+  return Main:init()
 end
 
 function update(dt)
-  Main:update(dt)
+  return Main:update(dt)
 end
 
 function render()
-  Main:render()
-end
-
-function on_reload(refreshed_resources)
-  Main:on_reload(refreshed_resources)
-end
-
-function on_activate(active)
-  Log.info("Main", "LUA window => " .. (active and "ACTIVATED" or "DEACTIVATED"))
-
-  if active and rawget(_G, "Managers") then
-    if Managers.dlc then
-      Managers.dlc:evaluate_consumables()
-    end
-
-    if Managers.account then
-      Managers.account:refresh_communication_restrictions()
-    end
-  end
-end
-
-function on_close()
-  local should_close = Main:on_close()
-
-  if should_close then
-    Application.force_silent_exit_policy()
-
-    if rawget(_G, "Crashify") then
-      Crashify.print_property("shutdown", true)
-    end
-  end
-
-  return should_close
-end
-
-function on_constrained(is_constrained)
-  if rawget(_G, "Managers") and Managers.event then
-    Managers.event:trigger("on_constrained", is_constrained)
-  end
-end
-
-function on_suspend()
-  if rawget(_G, "Managers") then
-    Managers.event:trigger("on_pre_suspend")
-    Managers.event:trigger("on_suspend")
-
-    local update_grpc = false
-
-    if Managers.party_immaterium then
-      Managers.party_immaterium:reset()
-
-      update_grpc = true
-    end
-
-    if Managers.presence then
-      Managers.presence:reset()
-
-      update_grpc = true
-    end
-
-    if update_grpc and Managers.grpc then
-      Managers.grpc:update(0)
-    end
-
-    if Managers.telemetry_events then
-      Managers.telemetry_events:game_suspended()
-    end
-  end
-end
-
-function on_resume()
-  GAME_RESUME_COUNT = GAME_RESUME_COUNT + 1
-
-  if rawget(_G, "Crashify") then
-    Crashify.print_property("game_resume_count", GAME_RESUME_COUNT)
-    Crashify.print_breadcrumb(string.format("on_resume: %s", GAME_RESUME_COUNT))
-  end
-
-  if rawget(_G, "Managers") then
-    if Managers.backend then
-      Managers.backend:time_sync_restart()
-    end
-
-    if Managers.telemetry_events then
-      Managers.telemetry_events:game_resumed()
-    end
-
-    if Managers.telemetry then
-      Managers.telemetry:post_batch()
-    end
-  end
-
-  if IS_XBS then
-    local ok, xlu = pcall(require, "scripts/foundation/utilities/xbox_live_utils")
-    if ok and xlu then
-      xlu.close_user_context()
-    end
-  end
+  return Main:render()
 end
 
 function shutdown()
-  Main:shutdown()
+  return Main:shutdown()
+end
+
+function on_reload(refreshed_resources)
+  return Main:on_reload(refreshed_resources)
+end
+
+function on_activate(is_active)
+  return Main:on_activate(is_active)
+end
+
+function on_close()
+  return Main:on_close()
+end
+
+function on_suspend()
+  return Main:on_suspend()
+end
+
+function on_resume()
+  return Main:on_resume()
+end
+
+function on_constrained(is_constrained)
+  return Main:on_constrained(is_constrained)
 end
 
 function on_low_memory_state_dump(global_path, registry_path, total_allocated, total_used)
-  Log.exception("Memory", "Low on Lua memory. Allocated: '%d', Used: '%d'\n\t\t_G dump: %s\n\t\tRegistry dump: %s\n\t", total_allocated, total_used, global_path, registry_path)
+  Log.exception("Memory", "Low on Lua memory. Allocated: '%d', Used: '%d'\n\t\t_G dump: %s\n\t\tRegistry dump: %s\n\t", global_path, registry_path, total_allocated, total_used)
 end
